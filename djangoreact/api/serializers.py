@@ -1,8 +1,8 @@
 from rest_framework import serializers
-from .models import WiseSaying
+from .models import xss
 
 
-class WiseSayingSerializer(serializers.ModelSerializer):
+class xssSerializer(serializers.ModelSerializer):
     class Meta:
-        model = WiseSaying
-        fields = '__all__'
+        model = xss
+        fields = ('url', 'form')

@@ -1,7 +1,9 @@
 from django.db import models
 
-class WiseSaying(models.Model):
-    text = models.TextField()
+
+class xss(models.Model):
+    url = models.URLField()
+    form = models.JSONField()
 
     def __str__(self):
-        return self.text
+        return self.url

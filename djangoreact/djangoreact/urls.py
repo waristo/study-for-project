@@ -20,7 +20,7 @@ from api import views
 from django.views.generic import TemplateView
 
 router = routers.DefaultRouter()
-router.register('wisesaying', views.WiseSayingView, 'wisesaying')
+router.register('xss', views.xssView, 'xss')
 
 urlpatterns = [
     path('admin/', admin.site.urls),

@@ -1,8 +1,8 @@
 from django.shortcuts import render
 from rest_framework import viewsets
-from .serializers import WiseSayingSerializer
-from .models import WiseSaying
+from .serializers import xssSerializer
+from .models import xss
 
-class WiseSayingView(viewsets.ModelViewSet):
-    serializer_class = WiseSayingSerializer
-    queryset = WiseSaying.objects.all()
+class xssView(viewsets.ModelViewSet):
+    serializer_class = xssSerializer
+    queryset = xss.objects.all()

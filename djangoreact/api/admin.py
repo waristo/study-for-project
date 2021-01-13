@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import WiseSaying
+from .models import xss
 
 
-admin.site.register(WiseSaying)
+admin.site.register(xss)

@@ -50,7 +50,7 @@ function App() {
       <p>{id}</p>
       <p>{pass}</p>
         <label>
-          뉴스 검색 :
+          URL :
           <input type="text" name="query" onChange={handleInputChange} />
         </label>
       <button onClick={handleSubmit}>
