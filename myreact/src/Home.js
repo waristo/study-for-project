@@ -17,12 +17,11 @@ const Home = () => {
   return (
     <div>
       <h1>홈</h1>
-      <p>이곳은 홈이에요. 가장 먼저 보여지는 페이지죠.</p>
       <TextField id="standard-search" label="URL" type="search" onChange={onChange} value={url}/>
       <Button variant="contained" onClick={onClick}>Search</Button>
-      <div>
-        <b>url: {url}</b>
-      </div>
+      {/*<div>*/}
+      {/*  <b>url: {url}</b>*/}
+      {/*</div>*/}
     </div>
   );
 };
