@@ -9,15 +9,13 @@ const Xsss = () => {
   useEffect(() => {
     const fetchXsss = async () => {
       try {
-        // 요청이 시작 할 때에는 error 와 users 를 초기화하고
         setError(null);
         setXsss(null);
-        // loading 상태를 true 로 바꿉니다.
         setLoading(true);
         const response = await axios.get(
           'http://localhost:8000/xss/'
         );
-        setXsss(response.data); // 데이터는 response.data 안에 들어있습니다.
+        setXsss(response.data);
       } catch (e) {
         setError(e);
       }
