@@ -1,10 +1,10 @@
 import aiohttp
 import asyncio
 import time
-import requests
 from bs4 import BeautifulSoup
 from queue import Queue, Empty
 from urllib.parse import urljoin, urlparse
+
 
 class AsyncScraper:
 
@@ -29,27 +29,6 @@ class AsyncScraper:
     def scrape_info(self, html):
         return
 
-    # def post_scrape_callback(self, res):
-    #     result = res.result()
-    #     if result and result.status_code == 200:
-    #         self.parse_links(result.text)
-    #         self.scrape_info(result.text)
-    #
-    # def scrape_page(self, url):
-    #     try:
-    #         res = requests.get(url, timeout=(3, 30))
-    #         return res
-    #     except requests.RequestException:
-    #         return
-    # async def scrape_page(self, url):
-    #     try:
-    #         res = requests.get(url, timeout=(3, 30))
-    #     except requests.RequestException:
-    #         res = False
-    #     if res and res.status_code == 200:
-    #         self.parse_links(res.text)
-    #         self.scrape_info(res.text)
-
     async def scrape_page(self, url):
         async with aiohttp.ClientSession() as session:
             async with session.get(url) as response:
@@ -67,9 +46,6 @@ class AsyncScraper:
                     self.scraped_pages.add(target_url)
                     loop = asyncio.get_event_loop()
                     loop.run_until_complete(self.scrape_page(target_url))
-                    # task = asyncio.create_task(self.scrape_page(target_url))
-                    # job = self.pool.submit(self.scrape_page, target_url)
-                    # job.add_done_callback(self.post_scrape_callback)
             except Empty:
                 return
             except Exception as e:
