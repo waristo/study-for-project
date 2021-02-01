@@ -1,60 +1,133 @@
-import aiohttp
-import asyncio
-import time
-from bs4 import BeautifulSoup
-from queue import Queue, Empty
+"""
+Collect all available unique internal URLs from a website using asyncio,
+and save them to a file.
+Note: downloadable URLs are processed in a more time-consuming,
+but safer manner (by reading the request's headers). For much faster
+performance, recognition by a URL extension may be used, but
+it is less safe.
+"""
+from aiohttp import ClientSession
+from contextlib import suppress
 from urllib.parse import urljoin, urlparse
+import aiofiles
+import argparse
+import asyncio
+import bs4
+import time
 
 
-class AsyncScraper:
+class SiteMap:
+    """
+    Build a site map by using async requests and selecting unique
+    internal URLs.
+    """
 
-    def __init__(self, base_url):
+    def __init__(self, site_url: str):
+        self.base_url = site_url.rstrip('/')
+        self.queue = asyncio.Queue()
+        self.map = set()
 
-        self.base_url = base_url
-        self.root_url = '{}://{}'.format(urlparse(self.base_url).scheme, urlparse(self.base_url).netloc)
-        self.scraped_pages = set([])
-        self.to_crawl = Queue()
-        self.to_crawl.put(self.base_url)
+    def _is_valid_url(self, url: str) -> bool:
+        """ Make sure is URL is an internal web page. """
+        if '#' in url:
+            return False
+        if not url.startswith(self.base_url):
+            return False
+        return True
 
-    def parse_links(self, html):
-        soup = BeautifulSoup(html, 'html.parser')
-        links = soup.find_all('a', href=True)
-        for link in links:
-            url = link['href']
-            if url.startswith('/') or url.startswith(self.root_url):
-                url = urljoin(self.root_url, url)
-                if url not in self.scraped_pages:
-                    self.to_crawl.put(url)
+    def _url_shortener(self, url: str) -> str:
+        parsed_object = urlparse(url)
+        short_url = parsed_object.path
+        return short_url
 
-    def scrape_info(self, html):
-        return
+    async def _url_processor(self, session: ClientSession):
+        """
+        Process the enqueued URLs, enqueue the newly found valid
+        URLs, and app the results to the map. If URLs is a downloadable,
+        just add it to the map without trying to process it.
+        """
+        while not self.queue.empty():
+            print(f'{self.queue.qsize()} link(s) enqueued.')
+            parent_url = await self.queue.get()
 
-    async def scrape_page(self, url):
-        async with aiohttp.ClientSession() as session:
-            async with session.get(url) as response:
-                if response.status == 200:
-                    html = await response.text()
-                    self.parse_links(html)
-                    self.scrape_info(html)
-
-    def run_scraper(self):
-        while True:
+            # Request a webpage from a URL
             try:
-                target_url = self.to_crawl.get(timeout=30)
-                if target_url not in self.scraped_pages:
-                    print("Scraping URL: {}".format(target_url))
-                    self.scraped_pages.add(target_url)
-                    loop = asyncio.get_event_loop()
-                    loop.run_until_complete(self.scrape_page(target_url))
-            except Empty:
-                return
-            except Exception as e:
-                print(e)
+                response = await session.request(method='GET', url=parent_url)
+                response.raise_for_status()
+            except:
                 continue
+
+            # Recognize a downloadable, add to the map, and continue.
+            # Downloadable URLs can be tossed aside by extension
+            # recognition, but it less safe than using the response
+            # headers. This is way is more time-consuming, though
+            try:
+                if response.headers['content-type'].startswith('application/'):
+                    self.map.add(self._url_shortener(parent_url))
+                    continue
+            except KeyError:
+                continue
+
+            # Extract html from the response
+            try:
+                html = await response.text()
+            except:
+                continue
+
+            # Parse the extracted html for eligible URLs
+            soup = bs4.BeautifulSoup(html, 'html.parser')
+            for ref in soup.findAll('a', href=True):  # parse for URLs
+                full_url = urljoin(self.base_url,
+                                   ref['href'].strip().rstrip('/'))
+                short_url = self._url_shortener(full_url)
+
+                if not self._is_valid_url(full_url):
+                    continue
+
+                # if a URL has not been enmapped to the results,
+                # schedule it for processing
+                if short_url not in self.map:
+                    self.map.add(short_url)
+                    await self.queue.put(full_url)
+                else:
+                    continue
+
+    async def build_site_map(self):
+        """
+        Using an aiohttp session, enqueue the base URL and trigger
+        processing.
+        """
+        async with ClientSession() as session:
+            await self.queue.put(self.base_url)
+            await self._url_processor(session)
+        return self.map
+
+
+async def main(url: str):
+    """ Run the code. """
+    mapper = SiteMap(url)
+    site_map = await mapper.build_site_map()
+    return site_map
 
 
 if __name__ == '__main__':
-    s = AsyncScraper("https://www.naver.com/")
+    parser = argparse.ArgumentParser(
+        description='Build and save a site map containing unique'
+                    'internal URLs'
+    )
+    parser.add_argument('path', type=str,
+                        help='pass in a website address')
+    parser.add_argument('filename', type=str,
+                        help='filename to save the sitemape')
+    args = parser.parse_args()
+    url = args.path
+    filename = args.filename
+
     start = time.time()
-    s.run_scraper()
-    print(time.time() - start)
+    site_map = asyncio.run(main(url))
+    site_map = sorted(list(site_map))
+    with open(filename, 'w') as file:
+        for link in site_map:
+            file.write(link+'\n')
+    end = time.time()
+    print('Execution time:', end-start)
